@@ -22,7 +22,14 @@ export class StreamDemux<T> {
 		);
   }
 
-  close(streamName: string, value?: T) {
+  close(consumerId: number, value?: T): void;
+  close(streamName: string, value?: T): void;
+  close(streamName: string | number, value?: T): void {
+		if (typeof streamName === 'number') {
+			this._mainStream.closeConsumer(streamName /* consumerId */ , value);
+			return;
+		}
+
     this._mainStream.write({
       stream: streamName,
       data: {
@@ -49,10 +56,6 @@ export class StreamDemux<T> {
 		);
   }
 
-  closeConsumer(consumerId: number, value?: T) {
-    this._mainStream.closeConsumer(consumerId, value);
-  }
-
 	getConsumerStats(): StreamDemuxStats[];
 	getConsumerStats(consumerId: number): StreamDemuxStats;
 	getConsumerStats(streamName: string): StreamDemuxStats[];
@@ -72,21 +75,24 @@ export class StreamDemux<T> {
     return this._mainStream.getConsumerStats(consumerId) as StreamDemuxStats;
   }
 
-  kill(streamName: string, value?: T) {
+  kill(consumerId: number, value?: T): void
+  kill(streamName: string, value?: T): void
+  kill(streamName: string | number, value?: T): void {
+		if (typeof streamName === 'number') {
+			this._mainStream.killConsumer(streamName /* consumerId */ , value);
+			return;
+		}
+
     let consumerList = this.getConsumerStats(streamName);
     let len = consumerList.length;
 
     for (let i = 0; i < len; i++) {
-      this.killConsumer(consumerList[i].id, value);
+      this._mainStream.killConsumer(consumerList[i].id, value);
     }
   }
 
   killAll(value?: T) {
     this._mainStream.kill(value);
-  }
-
-  killConsumer(consumerId: number, value?: T) {
-    this._mainStream.killConsumer(consumerId, value);
   }
 
   getBackpressure(streamName?: string): number;

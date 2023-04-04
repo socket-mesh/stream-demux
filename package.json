@@ -22,7 +22,14 @@
     "for-await-of"
   ],
   "author": "Jonathan Gros-Dubois",
-  "license": "MIT",
+	"contributors": [
+		"Greg Kimmy",
+		{
+			"name": "Jonathan Gros-Dubois",
+			"email": "grosjona@yahoo.com.au"
+		}
+	],
+	"license": "MIT",
   "bugs": {
 		"url": "https://github.com/socket-mesh/stream-demux/issues"
   },

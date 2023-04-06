@@ -374,10 +374,10 @@ describe('StreamDemux', () => {
 				await wait(10);
 				demux.write('hello', 'world' + i);
 			}
-			demux.closeConsumer(consumer.id, 'hi');
+			demux.close(consumer.id, 'hi');
 
 			// Closing a non-existent consumer should be ignored.
-			demux.closeConsumer(123, 'bar');
+			demux.close(123, 'bar');
 		})();
 
 		while (true) {
@@ -590,7 +590,7 @@ describe('StreamDemux', () => {
 
 		await wait(80);
 
-		demux.killConsumer(consumerA.id, 'the end');
+		demux.kill(consumerA.id, 'the end');
 
 		await wait(350);
 

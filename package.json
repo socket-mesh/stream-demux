@@ -1,6 +1,6 @@
 {
   "name": "@socket-mesh/stream-demux",
-  "version": "9.0.2",
+  "version": "9.0.3",
   "description": "A consumable stream demultiplexer.",
 	"type":"module",
   "main": "index.js",

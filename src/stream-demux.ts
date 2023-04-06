@@ -5,10 +5,10 @@ import { Consumer } from "@socket-mesh/writable-consumable-stream";
 import { StreamDemuxStats } from "./stream-demux-stats";
 
 export class StreamDemux<T> {
-	private readonly _mainStream: WritableConsumableStream<DemuxPacket<T, T>, T>;
+	private readonly _mainStream: WritableConsumableStream<DemuxPacket<T>, T>;
 
   constructor() {
-    this._mainStream = new WritableConsumableStream<DemuxPacket<T, T>, T>();
+    this._mainStream = new WritableConsumableStream<DemuxPacket<T>, T>();
   }
 
   write(streamName: string, value: T): void {

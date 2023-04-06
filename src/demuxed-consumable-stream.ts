@@ -5,7 +5,7 @@ interface ConsumerCreator<T> {
 	createConsumer(streamName: string, timeout?: number): Consumer<T, T>
 }
 
-export class DemuxedConsumableStream<T, TReturn> extends ConsumableStream<T, TReturn> {
+export class DemuxedConsumableStream<T> extends ConsumableStream<T, T> {
 	name: string;
 	private _streamDemux: ConsumerCreator<T>;
 

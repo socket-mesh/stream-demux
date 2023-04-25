@@ -202,7 +202,7 @@ export class StreamDemux<T> {
     return mainStreamConsumer as any;
   }
 
-  stream(streamName: string): DemuxedConsumableStream<T> {
+  listen(streamName: string): DemuxedConsumableStream<T> {
     return new DemuxedConsumableStream<T>(this, streamName);
   }
 }

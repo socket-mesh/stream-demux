@@ -202,6 +202,7 @@ export class StreamDemux<T> {
     return mainStreamConsumer as any;
   }
 
+	listen<U extends T = T>(streamName: string): DemuxedConsumableStream<U>;
   listen(streamName: string): DemuxedConsumableStream<T> {
     return new DemuxedConsumableStream<T>(this, streamName);
   }

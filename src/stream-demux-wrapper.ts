@@ -9,8 +9,8 @@ export class StreamDemuxWrapper<T> {
 		this._streamDemux = stream;
 	}
 
-	listen(name: string): DemuxedConsumableStream<T> {
-		return this._streamDemux.listen(name);
+	listen<U extends T = T> (name: string): DemuxedConsumableStream<U> {
+		return this._streamDemux.listen<U>(name);
 	}
 
 	close(): void;

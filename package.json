@@ -1,6 +1,6 @@
 {
 	"name": "@socket-mesh/stream-demux",
-	"version": "9.0.8",
+	"version": "9.0.9",
 	"description": "A consumable stream demultiplexer.",
 	"type":"module",
 	"main": "index.js",
@@ -44,6 +44,6 @@
 	},
 	"dependencies": {
 		"@socket-mesh/consumable-stream": "^3.2.1",
-		"@socket-mesh/writable-consumable-stream": "^4.2.7"
+		"@socket-mesh/writable-consumable-stream": "^4.2.8"
 	}
 }

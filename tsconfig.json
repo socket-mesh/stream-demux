@@ -3,14 +3,14 @@
 		"rootDir": "./src",
 		"outDir": "./dist/",
 		"noImplicitAny": true,
-		"module": "ES2022",
-		"target": "ES2022",
+		"module": "ES2020",
+		"target": "ES2020",
 		"declaration": true,
 		"allowSyntheticDefaultImports": true,
 		"moduleResolution": "node",
 		"esModuleInterop": true,
 		"sourceMap": true,
-		"lib": ["es2022", "dom"]
+		"lib": ["ES2020", "dom"]
 	},
 	"exclude": ["test", "dist", "**/*.spec.ts", "jest.config.ts"],
 	"ts-node": {

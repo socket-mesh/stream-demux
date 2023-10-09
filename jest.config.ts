@@ -11,7 +11,8 @@ const config: JestConfigWithTsJest = {
 		"(.+)\\.js": "$1"
 	},
 	extensionsToTreatAsEsm: ['.ts'],
-	testPathIgnorePatterns: ['./dist']
+	testPathIgnorePatterns: ['./dist'],
+	modulePathIgnorePatterns: ['<rootDir>/dist']
 }
 
 export default config

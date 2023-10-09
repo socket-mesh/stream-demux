@@ -1,4 +1,4 @@
-export { StreamDemux } from "./stream-demux";
-export { StreamDemuxStats } from "./stream-demux-stats";
-export { StreamDemuxWrapper } from "./stream-demux-wrapper";
-export { DemuxedConsumableStream } from "./demuxed-consumable-stream";
+export { StreamDemux } from "./stream-demux.js";
+export { StreamDemuxStats } from "./stream-demux-stats.js";
+export { StreamDemuxWrapper } from "./stream-demux-wrapper.js";
+export { DemuxedConsumableStream } from "./demuxed-consumable-stream.js";

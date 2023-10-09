@@ -231,6 +231,104 @@ describe('StreamDemux', () => {
 		expect(receivedPacketsB.length).toBe(10);
 	});
 
+	it('should support writing multiple times within the same call stack and across multiple streams', async () => {
+		(async () => {
+			for (let i = 0; i < 10; i++) {
+				await wait(20);
+				for (let j = 0; j < 10; j++) {
+					demux.write('hello', 'world' + i + '-' + j);
+				}
+			}
+			demux.close('hello');
+		})();
+
+		(async () => {
+			for (let i = 0; i < 10; i++) {
+				await wait(10);
+				for (let j = 0; j < 5; j++) {
+					demux.write('other', 'message' + i + '-' + j);
+				}
+			}
+			demux.close('other');
+		})();
+
+		let substream = demux.listen('hello');
+		let otherSubstream = demux.listen('other');
+		let otherReceivedPackets: string[] = [];
+
+		(async () => {
+			for await (let otherPacket of otherSubstream) {
+				await wait(10);
+				otherReceivedPackets.push(otherPacket);
+			}
+		})();
+
+		(async () => {
+			for await (let otherPacket of otherSubstream) {
+				await wait(20);
+				otherReceivedPackets.push(otherPacket);
+			}
+		})();
+
+		let receivedPackets: string[] = [];
+
+		for await (let packet of substream) {
+			await wait(20);
+			receivedPackets.push(packet);
+		}
+
+		expect(receivedPackets.length).toBe(100);
+		expect(otherReceivedPackets.length).toBe(100);
+	});
+
+	it('should support writing an arbitrarily large number of times within the same call stack', async () => {
+		(async () => {
+			await wait(50);
+			for (let i = 0; i < 100; i++) {
+				demux.write('hello', 'world' + i);
+			}
+			demux.close('hello');
+		})();
+
+		let substream = demux.listen('hello');
+
+		let receivedPackets: string[] = [];
+
+		for await (let packet of substream) {
+			receivedPackets.push(packet);
+			await wait(10);
+		}
+
+		expect(receivedPackets.length).toBe(100);
+	});
+
+	it('should support writing an arbitrarily large number of times within the same call stack with multiple concurrent consumers', async () => {
+		(async () => {
+			await wait(50);
+			for (let i = 0; i < 50; i++) {
+				demux.write('other', 'message' + i);
+			}
+			demux.close('other');
+		})();
+
+		let otherSubstream = demux.listen('other');
+		let receivedPackets: string[] = [];
+
+		(async () => {
+			for await (let otherPacket of otherSubstream) {
+				await wait(10);
+				receivedPackets.push(otherPacket);
+			}
+		})();
+
+		for await (let otherPacket of otherSubstream) {
+			await wait(20);
+			receivedPackets.push(otherPacket);
+		}
+
+		expect(receivedPackets.length).toBe(100);
+	});
+
 	it('should support the stream.once() method', async () => {
 		(async () => {
 			for (let i = 0; i < 10; i++) {
@@ -296,6 +394,75 @@ describe('StreamDemux', () => {
 		expect(packet).toBe(null);
 	});
 
+	it('should prevent stream.once() timeout from being reset when writing to other streams', async () => {
+		(async () => {
+			for (let i = 0; i < 15; i++) {
+				await wait(20);
+				demux.write('hi', 'test');
+			}
+		})();
+
+		let substream = demux.listen('hello');
+
+		let packet;
+		let error;
+		try {
+			packet = await substream.once(200);
+		} catch (err) {
+			error = err;
+		}
+
+		expect(error).not.toBe(undefined);
+		expect(error.name).toBe('TimeoutError');
+		expect(packet).toBe(undefined);
+	});
+
+	it('should prevent stream.once() timeout from being reset when killing other streams', async () => {
+		(async () => {
+			for (let i = 0; i < 15; i++) {
+				await wait(20);
+				demux.kill('hi' + i, 'test');
+			}
+		})();
+
+		let substream = demux.listen('hello');
+
+		let packet;
+		let error;
+		try {
+			packet = await substream.once(200);
+		} catch (err) {
+			error = err;
+		}
+
+		expect(error).not.toBe(undefined);
+		expect(error.name).toBe('TimeoutError');
+		expect(packet).toBe(undefined);
+	});
+
+	it('should support stream.once() timeout after killing the stream', async () => {
+		(async () => {
+			await wait(20);
+			demux.kill('hello', 'test');
+		})();
+
+		let substream = demux.listen('hello');
+
+		let start = Date.now();
+
+		let packet: string;
+		let error: any;
+
+		try {
+			packet = await substream.once(200);
+		} catch (err) {
+			error = err;
+		}
+		expect(error).not.toBe(undefined);
+		expect(error.name).toBe('TimeoutError');
+		expect(packet!).toBe(undefined);
+	});
+
 	it('should support stream.next() method with close command', async () => {
 		(async () => {
 			for (let i = 0; i < 3; i++) {
@@ -343,6 +510,7 @@ describe('StreamDemux', () => {
 		let consumer = demux.listen('hello').createConsumer();
 
 		(async () => {
+			await wait(50);
 			for (let i = 0; i < 10; i++) {
 				await wait(10);
 				demux.writeToConsumer(consumer.id, 'world' + i);

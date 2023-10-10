@@ -64,7 +64,7 @@ export class StreamConsumer<T> extends Consumer<DemuxPacket<T>, T> implements Co
 				this.currentNode.next.consumerId !== this.id
 			) {
 				this.currentNode = this.currentNode.next;
-				this.usabilityMode && await wait(0);
+				this.usabilityMode && await Promise.resolve();
 			}
 
 			if (!this.currentNode.next) {
@@ -94,12 +94,4 @@ export class StreamConsumer<T> extends Consumer<DemuxPacket<T>, T> implements Co
 		this._destroy();
 		return {} as any;
 	}
-}
-
-function wait(duration: number) {
-	return new Promise<void>((resolve) => {
-		setTimeout(() => {
-			resolve();
-		}, duration);
-	});
 }

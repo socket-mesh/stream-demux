@@ -188,7 +188,7 @@ export class StreamDemux<T> {
 		return new DemuxedConsumableStream<T>(this, streamName);
 	}
 
-	unstream(streamName: string): void {
+	unlisten(streamName: string): void {
 		delete this.streams[streamName];
 	}	
 }

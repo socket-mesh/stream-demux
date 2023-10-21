@@ -1,150 +1,194 @@
-import { WritableConsumableStream } from "@socket-mesh/writable-consumable-stream";
+import { WritableConsumableStream, WritableStreamConsumer } from "@socket-mesh/writable-consumable-stream";
 import { DemuxedConsumableStream } from "./demuxed-consumable-stream.js";
-import { DemuxPacket } from "./demux-packet.js";
 import { StreamDemuxStats } from "./stream-demux-stats.js";
-import { StreamConsumer } from "./stream-consumer.js";
 
 export class StreamDemux<T> {
-	private readonly _mainStream: WritableConsumableStream<DemuxPacket<T>, T>;
+	private _nextConsumerId: number;
+
+	streams: {[name: string] : WritableConsumableStream<T> };
+	generateConsumerId: () => number;
 
 	constructor() {
-		this._mainStream = new WritableConsumableStream<DemuxPacket<T>, T>();
+		this.streams = {};
+		this._nextConsumerId = 1;
+		this.generateConsumerId = () => {
+			return this._nextConsumerId++;
+		};
 	}
 
 	write(streamName: string, value: T): void {
-		this._mainStream.write({
-				stream: streamName,
-				data: {
-					value,
-					done: false
-				}
-			}
-		);
+		if (this.streams[streamName]) {
+			this.streams[streamName].write(value);
+		}
 	}
 
 	close(consumerId: number, value?: T): void;
 	close(streamName: string, value?: T): void;
 	close(streamName: string | number, value?: T): void {
 		if (typeof streamName === 'number') {
-			this._mainStream.closeConsumer(streamName /* consumerId */ , value);
+			for (let stream of Object.values(this.streams)) {
+				if (stream.hasConsumer(streamName)) {
+					return stream.closeConsumer(streamName, value);
+				}
+			}
 			return;
 		}
 
-		this._mainStream.write({
-			stream: streamName,
-			data: {
-				value,
-				done: true
-			}
-		});
+		if (this.streams[streamName]) {
+			this.streams[streamName].close(value);
+		}
 	}
 
 	closeAll(value?: T) {
-		this._mainStream.close(value);
+		for (let stream of Object.values(this.streams)) {
+			stream.close(value);
+		}
 	}
 
 	writeToConsumer(consumerId: number, value: T): void {
-		this._mainStream.writeToConsumer(
-			consumerId,
-			{
-				consumerId,
-				data: {
-					value,
-					done: false
-				}
+		for (let stream of Object.values(this.streams)) {
+			if (stream.hasConsumer(consumerId)) {
+				return stream.writeToConsumer(consumerId, value);
 			}
-		);
+		}
 	}
 
 	getConsumerStats(): StreamDemuxStats[];
 	getConsumerStats(consumerId: number): StreamDemuxStats;
 	getConsumerStats(streamName: string): StreamDemuxStats[];
 	getConsumerStats(consumerId?: number | string): StreamDemuxStats | StreamDemuxStats[] {
-		if (!consumerId) {
-			return this._mainStream.getConsumerStats().map(i => i as StreamDemuxStats);
+		if (consumerId === undefined) {
+			const allStatsList = [];
+
+			for (let streamName of Object.keys(this.streams)) {
+				const statsList = this.getConsumerStats(streamName);
+
+				for (let stats of statsList) {
+					allStatsList.push(stats);
+				}
+			}
+			
+			return allStatsList;
 		}
 
 		if (typeof consumerId === 'string') {
-			const consumerList = this._mainStream.getConsumerStats();
-
-			return consumerList.map(i => i as StreamDemuxStats).filter((consumerStats) => {
-				return consumerStats.stream === consumerId;
-			});
+			return (
+				!this.streams[consumerId] ? [] :
+					this.streams[consumerId]
+						.getConsumerStats()
+						.map(
+							(stats) => {
+								return {
+									...stats,
+									stream: consumerId
+								};
+							}
+						)
+			);
 		}
 
-		return this._mainStream.getConsumerStats(consumerId) as StreamDemuxStats;
+		for (let [streamName, stream] of Object.entries(this.streams)) {
+			if (stream.hasConsumer(consumerId)) {
+				return {
+					stream: streamName,
+					...stream.getConsumerStats(consumerId)
+				};
+			}
+		}
+		
+		return undefined;		
 	}
 
 	kill(consumerId: number, value?: T): void
 	kill(streamName: string, value?: T): void
 	kill(streamName: string | number, value?: T): void {
 		if (typeof streamName === 'number') {
-			this._mainStream.killConsumer(streamName /* consumerId */ , value);
+			for (let stream of Object.values(this.streams)) {
+				if (stream.hasConsumer(streamName)) {
+					return stream.killConsumer(streamName, value);
+				}
+			}
 			return;
 		}
 
-		let consumerList = this.getConsumerStats(streamName);
-		let len = consumerList.length;
-
-		for (let i = 0; i < len; i++) {
-			this._mainStream.killConsumer(consumerList[i].id, value);
+		if (this.streams[streamName]) {
+			this.streams[streamName].kill(value);
 		}
 	}
 
 	killAll(value?: T) {
-		this._mainStream.kill(value);
+		for (let stream of Object.values(this.streams)) {
+			stream.kill(value);
+		}
 	}
 
 	getBackpressure(streamName?: string): number;
 	getBackpressure(consumerId: number): number;
 	getBackpressure(streamName?: string | number): number {
 		if (typeof streamName === 'string') {
-			let consumerList = this.getConsumerStats(streamName);
-			let len = consumerList.length;
-
-			let maxBackpressure = 0;
-			for (let i = 0; i < len; i++) {
-				let consumer = consumerList[i];
-				if (consumer.backpressure > maxBackpressure) {
-					maxBackpressure = consumer.backpressure;
-				}
+			if (this.streams[streamName]) {
+				return this.streams[streamName].getBackpressure();
 			}
-			return maxBackpressure;
+			return 0;
 		}
 
-		return this._mainStream.getBackpressure(streamName /* consumerId */);
+		if (typeof streamName === 'number') {
+			for (let stream of Object.values(this.streams)) {
+				if (stream.hasConsumer(streamName)) {
+					return stream.getBackpressure(streamName);
+				}
+			}
+			return 0;			
+		}
+
+		return Object.values(this.streams).reduce(
+			(max, stream) => Math.max(max, stream.getBackpressure()),
+			0
+		);
 	}
 
 	hasConsumer(consumerId: number): boolean;
 	hasConsumer(streamName: string, consumerId: number): boolean;
 	hasConsumer(streamName: string | number, consumerId?: number): boolean {
 		if (typeof streamName === 'number') {
-			return this._mainStream.hasConsumer(streamName);
+			return Object.values(this.streams).some(stream => stream.hasConsumer(streamName));
 		}
 
-		const consumerStats = this._mainStream.getConsumerStats(consumerId) as StreamDemuxStats;
-		return !!consumerStats && consumerStats.stream === streamName;
+		if (this.streams[streamName]) {
+			return this.streams[streamName].hasConsumer(consumerId);
+		}
+		return false;		
 	}
 
 	getConsumerCount(streamName?: string): number {
-		return this.getConsumerStats(streamName).length;
+		if (this.streams[streamName]) {
+			return this.streams[streamName].getConsumerCount();
+		}
+		return 0;
 	}
 
-	createConsumer(streamName: string, timeout?: number, usabilityMode?: boolean): StreamConsumer<T> {
-		return new StreamConsumer<T>(
-			this._mainStream,
-			this._mainStream.nextConsumerId++,
-			this._mainStream.tailNode,
-			streamName,
-			timeout,
-			usabilityMode
-		);
+	createConsumer(streamName: string, timeout?: number): WritableStreamConsumer<T, T> {
+		if (!this.streams[streamName]) {
+			this.streams[streamName] = new WritableConsumableStream({
+				generateConsumerId: this.generateConsumerId,
+				removeConsumerCallback: () => {
+					if (!this.getConsumerCount(streamName)) {
+						delete this.streams[streamName];
+					}
+				}
+			});
+		}
+		return this.streams[streamName].createConsumer(timeout);
 	}
 
 	// Unlike individual consumers, consumable streams support being iterated
 	// over by multiple for-await-of loops in parallel.
-	listen<U extends T = T>(streamName: string, usabilityMode?: boolean): DemuxedConsumableStream<U>;
-	listen(streamName: string, usabilityMode?: boolean): DemuxedConsumableStream<T> {
-		return new DemuxedConsumableStream<T>(this, streamName, usabilityMode);
+	listen<U extends T = T>(streamName: string): DemuxedConsumableStream<U>;
+	listen(streamName: string): DemuxedConsumableStream<T> {
+		return new DemuxedConsumableStream<T>(this, streamName);
 	}
+
+	unstream(streamName: string): void {
+		delete this.streams[streamName];
+	}	
 }

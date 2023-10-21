@@ -1,6 +1,6 @@
 {
 	"name": "@socket-mesh/stream-demux",
-	"version": "9.0.10",
+	"version": "9.1.0",
 	"description": "A consumable stream demultiplexer.",
 	"type":"module",
 	"main": "index.js",
@@ -35,8 +35,8 @@
 	},
 	"homepage": "https://github.com/socket-mesh/stream-demux#readme",
 	"devDependencies": {
-		"@types/jest": "^29.5.5",
-		"@types/node": "^20.8.4",
+		"@types/jest": "^29.5.6",
+		"@types/node": "^20.8.7",
 		"cross-env": "^7.0.3",
 		"jest": "^29.7.0",
 		"ts-jest": "^29.1.1",
@@ -44,6 +44,6 @@
 	},
 	"dependencies": {
 		"@socket-mesh/consumable-stream": "^3.2.1",
-		"@socket-mesh/writable-consumable-stream": "^4.2.8"
+		"@socket-mesh/writable-consumable-stream": "^4.2.9"
 	}
 }

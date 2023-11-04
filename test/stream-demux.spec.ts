@@ -1,5 +1,6 @@
+import assert from 'node:assert';
+import { beforeEach, afterEach, describe, it } from "node:test";
 import { StreamDemux } from "../src/stream-demux";
-import { describe, it, expect } from '@jest/globals';
 
 let pendingTimeoutSet = new Set<NodeJS.Timeout>();
 
@@ -61,15 +62,15 @@ describe('StreamDemux', () => {
 			})()
 		]);
 
-		expect(receivedHelloPackets.length).toBe(10);
-		expect(receivedHelloPackets[0]).toBe('world0');
-		expect(receivedHelloPackets[1]).toBe('world1');
-		expect(receivedHelloPackets[9]).toBe('world9');
+		assert.strictEqual(receivedHelloPackets.length, 10);
+		assert.strictEqual(receivedHelloPackets[0], 'world0');
+		assert.strictEqual(receivedHelloPackets[1], 'world1');
+		assert.strictEqual(receivedHelloPackets[9], 'world9');
 
-		expect(receivedAbcPackets.length).toBe(10);
-		expect(receivedAbcPackets[0]).toBe('def0');
-		expect(receivedAbcPackets[1]).toBe('def1');
-		expect(receivedAbcPackets[9]).toBe('def9');
+		assert.strictEqual(receivedAbcPackets.length, 10);
+		assert.strictEqual(receivedAbcPackets[0], 'def0');
+		assert.strictEqual(receivedAbcPackets[1], 'def1');
+		assert.strictEqual(receivedAbcPackets[9], 'def9');
 	});
 
 	it('should support iterating over a single substream from multiple consumers at the same time', async () => {
@@ -104,9 +105,9 @@ describe('StreamDemux', () => {
 			})()
 		]);
 
-		expect(receivedPacketsA.length).toBe(10);
-		expect(receivedPacketsB.length).toBe(10);
-		expect(receivedPacketsC.length).toBe(10);
+		assert.strictEqual(receivedPacketsA.length, 10);
+		assert.strictEqual(receivedPacketsB.length, 10);
+		assert.strictEqual(receivedPacketsC.length, 10);
 	});
 
 	it('should support iterating over a substream using a while loop', async () => {
@@ -122,7 +123,7 @@ describe('StreamDemux', () => {
 		let receivedPackets: Packet[] = [];
 		let consumer = demux.listen('hello').createConsumer();
 
-		expect(consumer.getBackpressure()).toBe(0);
+		assert.strictEqual(consumer.getBackpressure(), 0);
 
 		while (true) {
 			let packet = await consumer.next();
@@ -130,11 +131,11 @@ describe('StreamDemux', () => {
 			receivedPackets.push(packet.value);
 		}
 
-		expect(receivedPackets.length).toBe(20);
-		expect(receivedPackets[0]).toBe('world0');
-		expect(receivedPackets[1]).toBe('foo0');
-		expect(receivedPackets[2]).toBe('world1');
-		expect(receivedPackets[3]).toBe('foo1');
+		assert.strictEqual(receivedPackets.length, 20);
+		assert.strictEqual(receivedPackets[0], 'world0');
+		assert.strictEqual(receivedPackets[1], 'foo0');
+		assert.strictEqual(receivedPackets[2], 'world1');
+		assert.strictEqual(receivedPackets[3], 'foo1');
 	});
 
 	it('should support closing all streams using a single closeAll command', async () => {
@@ -165,8 +166,8 @@ describe('StreamDemux', () => {
 			})()
 		]);
 
-		expect(receivedHelloPackets.length).toBe(10);
-		expect(receivedAbcPackets.length).toBe(10);
+		assert.strictEqual(receivedHelloPackets.length, 10);
+		assert.strictEqual(receivedAbcPackets.length, 10);
 	});
 
 	it('should support resuming stream consumption after the stream has been closed', async () => {
@@ -183,7 +184,7 @@ describe('StreamDemux', () => {
 			receivedPacketsA.push(packet);
 		}
 
-		expect(receivedPacketsA.length).toBe(10);
+		assert.strictEqual(receivedPacketsA.length, 10);
 
 		(async () => {
 			for (let i = 0; i < 10; i++) {
@@ -198,7 +199,7 @@ describe('StreamDemux', () => {
 			receivedPacketsB.push(packet);
 		}
 
-		expect(receivedPacketsB.length).toBe(10);
+		assert.strictEqual(receivedPacketsB.length, 10);
 	});
 
 	it('should support resuming stream consumption after the stream has been closed using closeAll', async () => {
@@ -215,7 +216,7 @@ describe('StreamDemux', () => {
 			receivedPacketsA.push(packet);
 		}
 
-		expect(receivedPacketsA.length).toBe(10);
+		assert.strictEqual(receivedPacketsA.length, 10);
 
 		(async () => {
 			for (let i = 0; i < 10; i++) {
@@ -230,7 +231,7 @@ describe('StreamDemux', () => {
 			receivedPacketsB.push(packet);
 		}
 
-		expect(receivedPacketsB.length).toBe(10);
+		assert.strictEqual(receivedPacketsB.length, 10);
 	});
 
 	it('should support writing multiple times within the same call stack and across multiple streams', async () => {
@@ -279,8 +280,8 @@ describe('StreamDemux', () => {
 			receivedPackets.push(packet);
 		}
 
-		expect(receivedPackets.length).toBe(100);
-		expect(otherReceivedPackets.length).toBe(100);
+		assert.strictEqual(receivedPackets.length, 100);
+		assert.strictEqual(otherReceivedPackets.length, 100);
 	});
 
 	it('should support writing an arbitrarily large number of times within the same call stack', async () => {
@@ -301,7 +302,7 @@ describe('StreamDemux', () => {
 			await wait(10);
 		}
 
-		expect(receivedPackets.length).toBe(100);
+		assert.strictEqual(receivedPackets.length, 100);
 	});
 
 	it('should support writing an arbitrarily large number of times within the same call stack with multiple concurrent consumers', async () => {
@@ -328,7 +329,7 @@ describe('StreamDemux', () => {
 			receivedPackets.push(otherPacket);
 		}
 
-		expect(receivedPackets.length).toBe(100);
+		assert.strictEqual(receivedPackets.length, 100);
 	});
 
 	it('should support the stream.once() method', async () => {
@@ -343,13 +344,13 @@ describe('StreamDemux', () => {
 		let substream = demux.listen('hello');
 
 		let packet = await substream.once();
-		expect(packet).toBe('world0');
+		assert.strictEqual(packet, 'world0');
 
 		packet = await substream.once();
-		expect(packet).toBe('world1');
+		assert.strictEqual(packet, 'world1');
 
 		packet = await substream.once();
-		expect(packet).toBe('world2');
+		assert.strictEqual(packet, 'world2');
 	});
 
 	it('should not resolve stream.once() when stream is closed', async () => {
@@ -367,7 +368,7 @@ describe('StreamDemux', () => {
 		})();
 
 		await wait(100);
-		expect(receivedPackets.length).toBe(0);
+		assert.strictEqual(receivedPackets.length, 0);
 	});
 
 	it('should support the stream.once() method with timeout', async () => {
@@ -382,7 +383,7 @@ describe('StreamDemux', () => {
 		let substream = demux.listen('hello');
 
 		let packet: (string | number | null) = await substream.once(30);
-		expect(packet).toBe('world0');
+		assert.strictEqual(packet, 'world0');
 
 		let error: Error | null = null;
 		packet = null;
@@ -391,9 +392,9 @@ describe('StreamDemux', () => {
 		} catch (err) {
 			error = err;
 		}
-		expect(error).not.toBe(null);
-		expect(error?.name).toBe('TimeoutError');
-		expect(packet).toBe(null);
+		assert.notEqual(error, null);
+		assert.strictEqual(error?.name, 'TimeoutError');
+		assert.strictEqual(packet, null);
 	});
 
 	it('should prevent stream.once() timeout from being reset when writing to other streams', async () => {
@@ -414,9 +415,9 @@ describe('StreamDemux', () => {
 			error = err;
 		}
 
-		expect(error).not.toBe(undefined);
-		expect(error.name).toBe('TimeoutError');
-		expect(packet).toBe(undefined);
+		assert.notEqual(error, undefined);
+		assert.strictEqual(error.name, 'TimeoutError');
+		assert.strictEqual(packet, undefined);
 	});
 
 	it('should prevent stream timeout from being reset when writing to other streams when iterating over consumer with timeout', async () => {
@@ -445,9 +446,9 @@ describe('StreamDemux', () => {
 			error = err;
 		}
 
-		expect(error).not.toBe(null);
-		expect(error!.name).toBe('TimeoutError')
-		expect(packet).toBe(null);
+		assert.notEqual(error, null);
+		assert.strictEqual(error!.name, 'TimeoutError')
+		assert.strictEqual(packet, null);
 	});
 
 	it('should prevent stream.once() timeout from being reset when killing other streams', async () => {
@@ -468,9 +469,9 @@ describe('StreamDemux', () => {
 			error = err;
 		}
 
-		expect(error).not.toBe(undefined);
-		expect(error.name).toBe('TimeoutError');
-		expect(packet).toBe(undefined);
+		assert.notEqual(error, undefined);
+		assert.strictEqual(error.name, 'TimeoutError');
+		assert.strictEqual(packet, undefined);
 	});
 
 	it('should support stream.once() timeout after killing the stream', async () => {
@@ -491,9 +492,9 @@ describe('StreamDemux', () => {
 		} catch (err) {
 			error = err;
 		}
-		expect(error).not.toBe(undefined);
-		expect(error.name).toBe('TimeoutError');
-		expect(packet!).toBe(undefined);
+		assert.notEqual(error, undefined);
+		assert.strictEqual(error.name, 'TimeoutError');
+		assert.strictEqual(packet!, undefined);
 	});
 
 	it('should support stream.next() method with close command', async () => {
@@ -509,16 +510,16 @@ describe('StreamDemux', () => {
 		let substream = demux.listen('hello');
 
 		let packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: 'world0', done: false}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: 'world0', done: false}));
 
 		packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: 'world1', done: false}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: 'world1', done: false}));
 
 		packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: 'world2', done: false}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: 'world2', done: false}));
 
 		packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: undefined, done: true}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: undefined, done: true}));
 	});
 
 	it('should support stream.next() method with closeAll command', async () => {
@@ -532,10 +533,10 @@ describe('StreamDemux', () => {
 		let substream = demux.listen('hello');
 
 		let packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: 'world', done: false}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: 'world', done: false}));
 
 		packet = await substream.next();
-		expect(JSON.stringify(packet)).toBe(JSON.stringify({value: undefined, done: true}));
+		assert.strictEqual(JSON.stringify(packet), JSON.stringify({value: undefined, done: true}));
 	});
 
 	it('should support writeToConsumer method', async () => {
@@ -559,11 +560,11 @@ describe('StreamDemux', () => {
 			if (packet.done) break;
 		}
 
-		expect(receivedPackets.length).toBe(11);
-		expect(receivedPackets[0]).toBe('world0');
-		expect(receivedPackets[1]).toBe('world1');
-		expect(receivedPackets[9]).toBe('world9');
-		expect(receivedPackets[10]).toBe('hi');
+		assert.strictEqual(receivedPackets.length, 11);
+		assert.strictEqual(receivedPackets[0], 'world0');
+		assert.strictEqual(receivedPackets[1], 'world1');
+		assert.strictEqual(receivedPackets[9], 'world9');
+		assert.strictEqual(receivedPackets[10], 'hi');
 	});
 
 	it('should support closeConsumer method', async () => {
@@ -587,11 +588,11 @@ describe('StreamDemux', () => {
 			if (packet.done) break;
 		}
 
-		expect(receivedPackets.length).toBe(11);
-		expect(receivedPackets[0]).toBe('world0');
-		expect(receivedPackets[1]).toBe('world1');
-		expect(receivedPackets[9]).toBe('world9');
-		expect(receivedPackets[10]).toBe('hi');
+		assert.strictEqual(receivedPackets.length, 11);
+		assert.strictEqual(receivedPackets[0], 'world0');
+		assert.strictEqual(receivedPackets[1], 'world1');
+		assert.strictEqual(receivedPackets[9], 'world9');
+		assert.strictEqual(receivedPackets[10], 'hi');
 	});
 
 	it('should support getConsumerStats method', async () => {
@@ -603,15 +604,15 @@ describe('StreamDemux', () => {
 		demux.close('hello', 'hi');
 
 		let consumerStats = demux.getConsumerStats(consumer.id);
-		expect(consumerStats).not.toBe(null);
-		expect(consumerStats.id).toBe(consumer.id);
-		expect(consumerStats.backpressure).toBe(11);
-		expect(consumerStats.backpressure).toBe(consumer.getBackpressure());
+		assert.notEqual(consumerStats, null);
+		assert.strictEqual(consumerStats.id, consumer.id);
+		assert.strictEqual(consumerStats.backpressure, 11);
+		assert.strictEqual(consumerStats.backpressure, consumer.getBackpressure());
 
 		consumer.return();
 
 		consumerStats = demux.getConsumerStats(consumer.id);
-		expect(consumerStats).toBe(undefined);
+		assert.strictEqual(consumerStats, undefined);
 	});
 
 	it('should support getConsumerStatsList method', async () => {
@@ -627,16 +628,16 @@ describe('StreamDemux', () => {
 		demux.close('hello', 'hi');
 
 		let consumerStatsList = demux.getConsumerStats('hello');
-		expect(consumerStatsList.length).toBe(2);
-		expect(consumerStatsList[0].id).toBe(consumerA.id);
-		expect(consumerStatsList[0].backpressure).toBe(12);
-		expect(consumerStatsList[0].backpressure).toBe(consumerA.getBackpressure());
-		expect(consumerStatsList[1].id).toBe(consumerB.id);
-		expect(consumerStatsList[1].backpressure).toBe(2);
-		expect(consumerStatsList[1].backpressure).toBe(consumerB.getBackpressure());
+		assert.strictEqual(consumerStatsList.length, 2);
+		assert.strictEqual(consumerStatsList[0].id, consumerA.id);
+		assert.strictEqual(consumerStatsList[0].backpressure, 12);
+		assert.strictEqual(consumerStatsList[0].backpressure, consumerA.getBackpressure());
+		assert.strictEqual(consumerStatsList[1].id, consumerB.id);
+		assert.strictEqual(consumerStatsList[1].backpressure, 2);
+		assert.strictEqual(consumerStatsList[1].backpressure, consumerB.getBackpressure());
 
 		consumerStatsList = demux.getConsumerStats('bar');
-		expect(consumerStatsList.length).toBe(0);
+		assert.strictEqual(consumerStatsList.length, 0);
 
 		consumerA.return();
 		consumerB.return();
@@ -656,23 +657,23 @@ describe('StreamDemux', () => {
 		demux.close('hello', 'hi');
 
 		let consumerStatsList = demux.getConsumerStats();
-		expect(consumerStatsList.length).toBe(3);
-		expect(consumerStatsList[0].id).toBe(consumerA.id);
-		expect(consumerStatsList[0].backpressure).toBe(12);
-		expect(consumerStatsList[0].backpressure).toBe(consumerA.getBackpressure());
-		expect(consumerStatsList[1].id).toBe(consumerB.id);
-		expect(consumerStatsList[1].backpressure).toBe(2);
-		expect(consumerStatsList[1].backpressure).toBe(consumerB.getBackpressure());
-		expect(consumerStatsList[2].id).toBe(consumerC.id);
-		expect(consumerStatsList[2].backpressure).toBe(0);
-		expect(consumerStatsList[2].backpressure).toBe(consumerC.getBackpressure());
+		assert.strictEqual(consumerStatsList.length, 3);
+		assert.strictEqual(consumerStatsList[0].id, consumerA.id);
+		assert.strictEqual(consumerStatsList[0].backpressure, 12);
+		assert.strictEqual(consumerStatsList[0].backpressure, consumerA.getBackpressure());
+		assert.strictEqual(consumerStatsList[1].id, consumerB.id);
+		assert.strictEqual(consumerStatsList[1].backpressure, 2);
+		assert.strictEqual(consumerStatsList[1].backpressure, consumerB.getBackpressure());
+		assert.strictEqual(consumerStatsList[2].id, consumerC.id);
+		assert.strictEqual(consumerStatsList[2].backpressure, 0);
+		assert.strictEqual(consumerStatsList[2].backpressure, consumerC.getBackpressure());
 
 		consumerA.return();
 		consumerB.return();
 		consumerC.return();
 
 		consumerStatsList = demux.getConsumerStats();
-		expect(consumerStatsList.length).toBe(0);
+		assert.strictEqual(consumerStatsList.length, 0);
 	});
 
 	it('should support kill method', async () => {
@@ -700,14 +701,14 @@ describe('StreamDemux', () => {
 
 		await wait(50);
 
-		expect(receivedPackets.length).toBe(4);
-		expect(receivedPackets[0].value).toBe('world0');
-		expect(receivedPackets[1].value).toBe('world1');
-		expect(receivedPackets[2].value).toBe('world2');
-		expect(receivedPackets[3].done).toBe(true);
-		expect(receivedPackets[3].value).toBe('end');
-		expect(consumerA.getBackpressure()).toBe(0);
-		expect(consumerB.getBackpressure()).toBe(0);
+		assert.strictEqual(receivedPackets.length, 4);
+		assert.strictEqual(receivedPackets[0].value, 'world0');
+		assert.strictEqual(receivedPackets[1].value, 'world1');
+		assert.strictEqual(receivedPackets[2].value, 'world2');
+		assert.strictEqual(receivedPackets[3].done, true);
+		assert.strictEqual(receivedPackets[3].value, 'end');
+		assert.strictEqual(consumerA.getBackpressure(), 0);
+		assert.strictEqual(consumerB.getBackpressure(), 0);
 	});
 
 	it('should support killAll method', async () => {
@@ -744,20 +745,20 @@ describe('StreamDemux', () => {
 		demux.killAll('bar');
 		await wait(50);
 
-		expect(receivedPacketsA.length).toBe(4);
-		expect(receivedPacketsA[0].value).toBe('world0');
-		expect(receivedPacketsA[1].value).toBe('world1');
-		expect(receivedPacketsA[2].value).toBe('world2');
-		expect(receivedPacketsA[3].done).toBe(true);
-		expect(receivedPacketsA[3].value).toBe('bar');
-		expect(receivedPacketsC.length).toBe(4);
-		expect(receivedPacketsC[0].value).toBe('world0');
-		expect(receivedPacketsC[1].value).toBe('world1');
-		expect(receivedPacketsC[2].value).toBe('world2');
-		expect(receivedPacketsC[3].done).toBe(true);
-		expect(receivedPacketsC[3].value).toBe('bar');
-		expect(consumerA.getBackpressure()).toBe(0);
-		expect(consumerB.getBackpressure()).toBe(0);
+		assert.strictEqual(receivedPacketsA.length, 4);
+		assert.strictEqual(receivedPacketsA[0].value, 'world0');
+		assert.strictEqual(receivedPacketsA[1].value, 'world1');
+		assert.strictEqual(receivedPacketsA[2].value, 'world2');
+		assert.strictEqual(receivedPacketsA[3].done, true);
+		assert.strictEqual(receivedPacketsA[3].value, 'bar');
+		assert.strictEqual(receivedPacketsC.length, 4);
+		assert.strictEqual(receivedPacketsC[0].value, 'world0');
+		assert.strictEqual(receivedPacketsC[1].value, 'world1');
+		assert.strictEqual(receivedPacketsC[2].value, 'world2');
+		assert.strictEqual(receivedPacketsC[3].done, true);
+		assert.strictEqual(receivedPacketsC[3].value, 'bar');
+		assert.strictEqual(consumerA.getBackpressure(), 0);
+		assert.strictEqual(consumerB.getBackpressure(), 0);
 	});
 
 	it('should support killConsumer method', async () => {
@@ -795,20 +796,20 @@ describe('StreamDemux', () => {
 
 		await wait(350);
 
-		expect(receivedPacketsA.length).toBe(4);
-		expect(receivedPacketsA[0].value).toBe('world0');
-		expect(receivedPacketsA[1].value).toBe('world1');
-		expect(receivedPacketsA[2].value).toBe('world2');
-		expect(receivedPacketsA[3].done).toBe(true);
-		expect(receivedPacketsA[3].value).toBe('the end');
+		assert.strictEqual(receivedPacketsA.length, 4);
+		assert.strictEqual(receivedPacketsA[0].value, 'world0');
+		assert.strictEqual(receivedPacketsA[1].value, 'world1');
+		assert.strictEqual(receivedPacketsA[2].value, 'world2');
+		assert.strictEqual(receivedPacketsA[3].done, true);
+		assert.strictEqual(receivedPacketsA[3].value, 'the end');
 
-		expect(receivedPacketsB.length).toBe(10);
-		expect(receivedPacketsB[0].value).toBe('world0');
-		expect(receivedPacketsB[1].value).toBe('world1');
-		expect(receivedPacketsB[9].value).toBe('world9');
+		assert.strictEqual(receivedPacketsB.length, 10);
+		assert.strictEqual(receivedPacketsB[0].value, 'world0');
+		assert.strictEqual(receivedPacketsB[1].value, 'world1');
+		assert.strictEqual(receivedPacketsB[9].value, 'world9');
 
-		expect(consumerA.getBackpressure()).toBe(0);
-		expect(consumerB.getBackpressure()).toBe(0);
+		assert.strictEqual(consumerA.getBackpressure(), 0);
+		assert.strictEqual(consumerB.getBackpressure(), 0);
 	});
 
 	it('should support getBackpressure method', async () => {
@@ -817,16 +818,16 @@ describe('StreamDemux', () => {
 		demux.write('hello', 'world0');
 		demux.write('hello', 'world1');
 
-		expect(demux.getBackpressure('hello')).toBe(2);
+		assert.strictEqual(demux.getBackpressure('hello'), 2);
 
 		demux.write('hello', 'world2');
 		demux.write('hello', 'world3');
 
-		expect(demux.getBackpressure('hello')).toBe(4);
+		assert.strictEqual(demux.getBackpressure('hello'), 4);
 
 		demux.kill('hello');
 
-		expect(demux.getBackpressure('hello')).toBe(0);
+		assert.strictEqual(demux.getBackpressure('hello'), 0);
 	});
 
 	it('should support getBackpressureAll method', async () => {
@@ -836,22 +837,22 @@ describe('StreamDemux', () => {
 		demux.write('hello', 'world0');
 		demux.write('hello', 'world1');
 
-		expect(demux.getBackpressure()).toBe(2);
+		assert.strictEqual(demux.getBackpressure(), 2);
 
 		demux.write('hi', 'message');
 		demux.write('hi', 'message');
 		demux.write('hi', 'message');
 		demux.write('hi', 'message');
 
-		expect(demux.getBackpressure()).toBe(4);
+		assert.strictEqual(demux.getBackpressure(), 4);
 
 		demux.kill('hi');
 
-		expect(demux.getBackpressure()).toBe(2);
+		assert.strictEqual(demux.getBackpressure(), 2);
 
 		demux.kill('hello');
 
-		expect(demux.getBackpressure()).toBe(0);
+		assert.strictEqual(demux.getBackpressure(), 0);
 	});
 
 	it('should support getConsumerBackpressure method', async () => {
@@ -866,37 +867,37 @@ describe('StreamDemux', () => {
 		demux.write('hi', 'message');
 		demux.write('hi', 'message');
 
-		expect(demux.getBackpressure(consumerA.id)).toBe(2);
-		expect(demux.getBackpressure(consumerB.id)).toBe(4);
+		assert.strictEqual(demux.getBackpressure(consumerA.id), 2);
+		assert.strictEqual(demux.getBackpressure(consumerB.id), 4);
 
 		demux.kill('hi');
 
-		expect(demux.getBackpressure(consumerA.id)).toBe(2);
-		expect(demux.getBackpressure(consumerB.id)).toBe(0);
+		assert.strictEqual(demux.getBackpressure(consumerA.id), 2);
+		assert.strictEqual(demux.getBackpressure(consumerB.id), 0);
 
 		demux.kill('hello');
 
-		expect(demux.getBackpressure(consumerA.id)).toBe(0);
-		expect(demux.getBackpressure(consumerB.id)).toBe(0);
+		assert.strictEqual(demux.getBackpressure(consumerA.id), 0);
+		assert.strictEqual(demux.getBackpressure(consumerB.id), 0);
 	});
 
 	it('should support hasConsumer method', async () => {
 		let consumerA = demux.listen('hello').createConsumer();
 		let consumerB = demux.listen('hi').createConsumer();
 
-		expect(demux.hasConsumer('hello', 123)).toBe(false);
-		expect(demux.hasConsumer('hello', consumerA.id)).toBe(true);
-		expect(demux.hasConsumer('hi', consumerB.id)).toBe(true);
-		expect(demux.hasConsumer('hello', consumerB.id)).toBe(false);
-		expect(demux.hasConsumer('hi', consumerA.id)).toBe(false);
+		assert.strictEqual(demux.hasConsumer('hello', 123), false);
+		assert.strictEqual(demux.hasConsumer('hello', consumerA.id), true);
+		assert.strictEqual(demux.hasConsumer('hi', consumerB.id), true);
+		assert.strictEqual(demux.hasConsumer('hello', consumerB.id), false);
+		assert.strictEqual(demux.hasConsumer('hi', consumerA.id), false);
 	});
 
 	it('should support hasConsumerAll method', async () => {
 		let consumerA = demux.listen('hello').createConsumer();
 		let consumerB = demux.listen('hi').createConsumer();
 
-		expect(demux.hasConsumer(123)).toBe(false);
-		expect(demux.hasConsumer(consumerA.id)).toBe(true);
-		expect(demux.hasConsumer(consumerB.id)).toBe(true);
+		assert.strictEqual(demux.hasConsumer(123), false);
+		assert.strictEqual(demux.hasConsumer(consumerA.id), true);
+		assert.strictEqual(demux.hasConsumer(consumerB.id), true);
 	});
 });

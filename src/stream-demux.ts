@@ -183,7 +183,7 @@ export class StreamDemux<T> {
 
 	// Unlike individual consumers, consumable streams support being iterated
 	// over by multiple for-await-of loops in parallel.
-	listen<U>(streamName: string): DemuxedConsumableStream<U>;
+	listen<U extends T, V = U>(streamName: string): DemuxedConsumableStream<V>;
 	listen(streamName: string): DemuxedConsumableStream<T> {
 		return new DemuxedConsumableStream<T>(this, streamName);
 	}

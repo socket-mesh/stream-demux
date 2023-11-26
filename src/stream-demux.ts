@@ -17,6 +17,10 @@ export class StreamDemux<T> {
 	}
 
 	write(streamName: string, value: T): void {
+		if (!this.streams[streamName]) {
+			streamName = '';
+		}
+
 		if (this.streams[streamName]) {
 			this.streams[streamName].write(value);
 		}
@@ -138,7 +142,7 @@ export class StreamDemux<T> {
 					return stream.getBackpressure(streamName);
 				}
 			}
-			return 0;			
+			return 0;
 		}
 
 		return Object.values(this.streams).reduce(
@@ -157,7 +161,7 @@ export class StreamDemux<T> {
 		if (this.streams[streamName]) {
 			return this.streams[streamName].hasConsumer(consumerId);
 		}
-		return false;		
+		return false;
 	}
 
 	getConsumerCount(streamName?: string): number {

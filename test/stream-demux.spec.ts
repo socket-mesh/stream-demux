@@ -332,6 +332,42 @@ describe('StreamDemux', () => {
 		assert.strictEqual(receivedPackets.length, 100);
 	});
 
+	it('should write to the no-named stream if no listeners are found', async () => {
+		(async () => {
+			await wait(10);
+
+			demux.write('hi', 'world1');
+			demux.write('hello', 'world2');
+			demux.closeAll();
+		})();
+
+		let otherPackets: Packet[] = [];
+		let helloPackets: Packet[] = [];
+		let otherSubstream = demux.listen('');
+		let helloSubstream = demux.listen('hello');
+
+		(async () => {
+			for await (let packet of otherSubstream) {
+				otherPackets.push(packet);
+				await wait(10);
+			}
+		})();
+
+		(async () => {
+			for await (let packet of helloSubstream) {
+				helloPackets.push(packet);
+				await wait(10);
+			}
+		})();
+
+		await wait(50);
+
+		assert.strictEqual(otherPackets[0], 'world1');
+		assert.strictEqual(otherPackets.length, 1);
+		assert.strictEqual(helloPackets[0], 'world2');
+		assert.strictEqual(helloPackets.length, 1);
+	});
+
 	it('should support the stream.once() method', async () => {
 		(async () => {
 			for (let i = 0; i < 10; i++) {
@@ -540,8 +576,8 @@ describe('StreamDemux', () => {
 	});
 
 	it('should support writeToConsumer method', async () => {
-		let receivedPackets: Packet[] = [];
-		let consumer = demux.listen('hello').createConsumer();
+		const receivedPackets: Packet[] = [];
+		const consumer = demux.listen('hello').createConsumer();
 
 		(async () => {
 			await wait(50);

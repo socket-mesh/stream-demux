@@ -2,14 +2,14 @@ import { WritableConsumableStream, WritableStreamConsumer } from "@socket-mesh/w
 import { DemuxedConsumableStream } from "./demuxed-consumable-stream.js";
 import { StreamDemuxStats } from "./stream-demux-stats.js";
 
-export interface StreamItem<T> {
+export interface StreamEvent<T> {
 	stream: string,
 	value: T
 }
 
 export class StreamDemux<T> {
 	private _nextConsumerId: number;
-	private _allEventsStream: WritableConsumableStream<StreamItem<T>>;
+	private _allEventsStream: WritableConsumableStream<StreamEvent<T>>;
 
 	streams: {[name: string] : WritableConsumableStream<T> };
 	generateConsumerId: () => number;
@@ -252,11 +252,11 @@ export class StreamDemux<T> {
 		return 0;
 	}
 
-	createConsumer(timeout?: number): WritableStreamConsumer<StreamItem<T>, StreamItem<T>>;
+	createConsumer(timeout?: number): WritableStreamConsumer<StreamEvent<T>, StreamEvent<T>>;
 	createConsumer(streamName: string, timeout?: number): WritableStreamConsumer<T, T>;
 	createConsumer(
 		streamName?: string | number, timeout?: number
-	): WritableStreamConsumer<StreamItem<T>, StreamItem<T>> | WritableStreamConsumer<T, T> {
+	): WritableStreamConsumer<StreamEvent<T>, StreamEvent<T>> | WritableStreamConsumer<T, T> {
 		if (!streamName) {
 			streamName = '';
 		} else if (typeof streamName === 'number') {
@@ -294,9 +294,9 @@ export class StreamDemux<T> {
 
 	// Unlike individual consumers, consumable streams support being iterated
 	// over by multiple for-await-of loops in parallel.
-	listen(): DemuxedConsumableStream<StreamItem<T>>;
+	listen(): DemuxedConsumableStream<StreamEvent<T>>;
 	listen<U extends T, V = U>(streamName: string): DemuxedConsumableStream<V>;
-	listen(streamName: string = ''): DemuxedConsumableStream<StreamItem<T>>| DemuxedConsumableStream<T> {
+	listen(streamName: string = ''): DemuxedConsumableStream<StreamEvent<T>>| DemuxedConsumableStream<T> {
 		return new DemuxedConsumableStream<T>(this, streamName);
 	}
 

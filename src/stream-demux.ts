@@ -2,8 +2,14 @@ import { WritableConsumableStream, WritableStreamConsumer } from "@socket-mesh/w
 import { DemuxedConsumableStream } from "./demuxed-consumable-stream.js";
 import { StreamDemuxStats } from "./stream-demux-stats.js";
 
+export interface StreamItem<T> {
+	stream: string,
+	value: T
+}
+
 export class StreamDemux<T> {
 	private _nextConsumerId: number;
+	private _allEventsStream: WritableConsumableStream<StreamItem<T>>;
 
 	streams: {[name: string] : WritableConsumableStream<T> };
 	generateConsumerId: () => number;
@@ -17,18 +23,19 @@ export class StreamDemux<T> {
 	}
 
 	write(streamName: string, value: T): void {
-		if (!this.streams[streamName]) {
-			streamName = '';
-		}
-
 		if (this.streams[streamName]) {
 			this.streams[streamName].write(value);
 		}
+
+		if (this._allEventsStream) {
+			this._allEventsStream.write({ stream: streamName, value });
+		}
 	}
 
+	close(): void;
 	close(consumerId: number, value?: T): void;
 	close(streamName: string, value?: T): void;
-	close(streamName: string | number, value?: T): void {
+	close(streamName: string | number = '', value?: T): void {
 		if (typeof streamName === 'number') {
 			for (let stream of Object.values(this.streams)) {
 				if (stream.hasConsumer(streamName)) {
@@ -38,14 +45,30 @@ export class StreamDemux<T> {
 			return;
 		}
 
-		if (this.streams[streamName]) {
-			this.streams[streamName].close(value);
+		if (streamName) {
+			if (this._allEventsStream) {
+				this._allEventsStream.write({ stream: streamName, value });
+			}
+
+			if (this.streams[streamName]) {
+				this.streams[streamName].close(value);
+			}
+		} else {
+			this._allEventsStream.close();
 		}
 	}
 
 	closeAll(value?: T) {
-		for (let stream of Object.values(this.streams)) {
+		for (let [streamName, stream] of Object.entries(this.streams)) {
+			if (this._allEventsStream) {
+				this._allEventsStream.write({ stream: streamName, value });
+			}
+
 			stream.close(value);
+		}
+
+		if (this._allEventsStream) {
+			this._allEventsStream.close();
 		}
 	}
 
@@ -64,15 +87,31 @@ export class StreamDemux<T> {
 		if (consumerId === undefined) {
 			const allStatsList = [];
 
-			for (let streamName of Object.keys(this.streams)) {
-				const statsList = this.getConsumerStats(streamName);
+			if (this._allEventsStream) {
+				allStatsList.push(...this.getConsumerStats(''));
+			} 
 
-				for (let stats of statsList) {
-					allStatsList.push(stats);
-				}
+			for (let streamName of Object.keys(this.streams)) {
+				allStatsList.push(...this.getConsumerStats(streamName));
 			}
 			
 			return allStatsList;
+		}
+
+		if (consumerId === '') {
+			return (
+				!this._allEventsStream ? [] :
+					this._allEventsStream
+						.getConsumerStats()
+						.map(
+							(stats) => {
+								return {
+									...stats,
+									stream: consumerId
+								};
+							}
+						)
+			);
 		}
 
 		if (typeof consumerId === 'string') {
@@ -91,6 +130,13 @@ export class StreamDemux<T> {
 			);
 		}
 
+		if (this._allEventsStream && this._allEventsStream.hasConsumer(consumerId)) {
+			return {
+				stream: '',
+				...this._allEventsStream.getConsumerStats(consumerId)
+			};
+		}
+
 		for (let [streamName, stream] of Object.entries(this.streams)) {
 			if (stream.hasConsumer(consumerId)) {
 				return {
@@ -103,9 +149,10 @@ export class StreamDemux<T> {
 		return undefined;		
 	}
 
-	kill(consumerId: number, value?: T): void
-	kill(streamName: string, value?: T): void
-	kill(streamName: string | number, value?: T): void {
+	kill(): void;
+	kill(consumerId: number, value?: T): void;
+	kill(streamName: string, value?: T): void;
+	kill(streamName: string | number = '', value?: T): void {
 		if (typeof streamName === 'number') {
 			for (let stream of Object.values(this.streams)) {
 				if (stream.hasConsumer(streamName)) {
@@ -115,14 +162,30 @@ export class StreamDemux<T> {
 			return;
 		}
 
-		if (this.streams[streamName]) {
+		if (streamName && this.streams[streamName]) {
+			if (this._allEventsStream) {
+				this._allEventsStream.write({ stream: streamName, value });
+			}
+
 			this.streams[streamName].kill(value);
+		}
+		
+		if (!streamName && this._allEventsStream) {
+			this._allEventsStream.kill();
 		}
 	}
 
 	killAll(value?: T) {
-		for (let stream of Object.values(this.streams)) {
+		for (let [streamName, stream] of Object.entries(this.streams)) {
+			if (this._allEventsStream) {
+				this._allEventsStream.write({ stream: streamName, value });
+			}
+			
 			stream.kill(value);
+		}
+
+		if (this._allEventsStream) {
+			this._allEventsStream.kill();
 		}
 	}
 
@@ -130,6 +193,11 @@ export class StreamDemux<T> {
 	getBackpressure(consumerId: number): number;
 	getBackpressure(streamName?: string | number): number {
 		if (typeof streamName === 'string') {
+
+			if (!streamName) {
+				return this._allEventsStream?.getBackpressure() ?? 0;
+			}
+
 			if (this.streams[streamName]) {
 				return this.streams[streamName].getBackpressure();
 			}
@@ -137,6 +205,10 @@ export class StreamDemux<T> {
 		}
 
 		if (typeof streamName === 'number') {
+			if (this._allEventsStream && this._allEventsStream.hasConsumer(streamName)) {
+				return this._allEventsStream.getBackpressure(streamName);
+			}
+
 			for (let stream of Object.values(this.streams)) {
 				if (stream.hasConsumer(streamName)) {
 					return stream.getBackpressure(streamName);
@@ -147,7 +219,7 @@ export class StreamDemux<T> {
 
 		return Object.values(this.streams).reduce(
 			(max, stream) => Math.max(max, stream.getBackpressure()),
-			0
+			this._allEventsStream?.getBackpressure() ?? 0
 		);
 	}
 
@@ -155,28 +227,63 @@ export class StreamDemux<T> {
 	hasConsumer(streamName: string, consumerId: number): boolean;
 	hasConsumer(streamName: string | number, consumerId?: number): boolean {
 		if (typeof streamName === 'number') {
-			return Object.values(this.streams).some(stream => stream.hasConsumer(streamName));
+			return this._allEventsStream?.hasConsumer(streamName) || Object.values(this.streams).some(stream => stream.hasConsumer(streamName));
 		}
 
-		if (this.streams[streamName]) {
+		if (streamName && this.streams[streamName]) {
 			return this.streams[streamName].hasConsumer(consumerId);
 		}
+
+		if (!streamName && this._allEventsStream) {
+			return this._allEventsStream.hasConsumer(consumerId);
+		}
+
 		return false;
 	}
 
 	getConsumerCount(streamName?: string): number {
-		if (this.streams[streamName]) {
+		if (!streamName && this._allEventsStream) {
+			return this._allEventsStream.getConsumerCount();
+		}
+
+		if (streamName && this.streams[streamName]) {
 			return this.streams[streamName].getConsumerCount();
 		}
 		return 0;
 	}
 
-	createConsumer(streamName: string, timeout?: number): WritableStreamConsumer<T, T> {
+	createConsumer(timeout?: number): WritableStreamConsumer<StreamItem<T>, StreamItem<T>>;
+	createConsumer(streamName: string, timeout?: number): WritableStreamConsumer<T, T>;
+	createConsumer(
+		streamName?: string | number, timeout?: number
+	): WritableStreamConsumer<StreamItem<T>, StreamItem<T>> | WritableStreamConsumer<T, T> {
+		if (!streamName) {
+			streamName = '';
+		} else if (typeof streamName === 'number') {
+			timeout = streamName;
+			streamName = '';
+		}
+
+		if (!streamName) {
+			if (!this._allEventsStream) {
+				this._allEventsStream = new WritableConsumableStream({
+					generateConsumerId: this.generateConsumerId,
+					removeConsumerCallback: () => {
+						if (!this.getConsumerCount('')) {
+							this._allEventsStream = null;
+						}
+					}
+				});
+			}
+
+			return this._allEventsStream.createConsumer(timeout);
+		}
+
 		if (!this.streams[streamName]) {
 			this.streams[streamName] = new WritableConsumableStream({
 				generateConsumerId: this.generateConsumerId,
 				removeConsumerCallback: () => {
-					if (!this.getConsumerCount(streamName)) {
+					if (!this.getConsumerCount(streamName as string)) {
 						delete this.streams[streamName];
 					}
 				}
@@ -187,12 +294,17 @@ export class StreamDemux<T> {
 
 	// Unlike individual consumers, consumable streams support being iterated
 	// over by multiple for-await-of loops in parallel.
+	listen(): DemuxedConsumableStream<StreamItem<T>>;
 	listen<U extends T, V = U>(streamName: string): DemuxedConsumableStream<V>;
-	listen(streamName: string): DemuxedConsumableStream<T> {
+	listen(streamName: string = ''): DemuxedConsumableStream<StreamItem<T>>| DemuxedConsumableStream<T> {
 		return new DemuxedConsumableStream<T>(this, streamName);
 	}
 
-	unlisten(streamName: string): void {
-		delete this.streams[streamName];
-	}	
+	unlisten(streamName = ''): void {
+		if (!streamName) {
+			this._allEventsStream = null;
+		} else {
+			delete this.streams[streamName];
+		}
+	}
 }
